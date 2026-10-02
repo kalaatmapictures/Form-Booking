@@ -598,7 +598,14 @@ function goto(step){
   window.scrollTo({top:0, behavior: step===0 ? 'auto' : 'smooth'});
 }
 
-$('#startBtn').onclick = () => { renderServices(); goto(1); };
+// menu dimuat asinkron (Supabase); tunggu sampai siap sebelum masuk ke step 1
+$('#startBtn').onclick = async () => {
+  const btn = $('#startBtn');
+  btn.disabled = true;
+  await catalogReady;
+  btn.disabled = false;
+  renderServices(); goto(1);
+};
 $('#backBtn').onclick  = () => goto(Math.max(0, state.step - 1));
 $('#nextBtn').onclick  = () => {
   if(state.step === 3 && !validate(true)){
@@ -821,4 +828,4 @@ async function init(){
   $('#date').min = `${localToday.getFullYear()}-${String(localToday.getMonth()+1).padStart(2,'0')}-${String(localToday.getDate()).padStart(2,'0')}`;
   goto(0);
 }
-init();
+const catalogReady = init();

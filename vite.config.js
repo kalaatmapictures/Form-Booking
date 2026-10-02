@@ -1,13 +1,12 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
-// Multi-page: landing page booking (/) dan web admin (/admin/).
+// Web admin ada di repo terpisah: marselcerebrum-jpg/web-admin-booking.
 export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main:  resolve(import.meta.dirname, 'index.html'),
-        admin: resolve(import.meta.dirname, 'admin/index.html')
+        main: resolve(import.meta.dirname, 'index.html')
       }
     }
   }

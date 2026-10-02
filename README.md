@@ -1,7 +1,7 @@
 # Kalaatma Pictures — Booking
 
-- **`/`** — landing page booking untuk pelanggan (alur 5 langkah: layanan → paket → detail → konfirmasi → pembayaran DP).
-- **`/admin/`** — web admin: dashboard, kelola menu (layanan, grup paket, paket, add-on), syarat & ketentuan, pengaturan pembayaran/kontak, dan log aktivitas admin.
+Landing page booking untuk pelanggan (alur 5 langkah: layanan → paket → detail → konfirmasi → pembayaran DP).
+Menunya diatur dari web admin di repo terpisah: [`web-admin-booking`](https://github.com/marselcerebrum-jpg/web-admin-booking).
 
 Dibangun dengan Vite (HTML/CSS/JS murni), database Supabase, hosting Vercel.
 
@@ -16,9 +16,15 @@ npm run build      # hasil di dist/
 Tanpa `.env`, mode development berjalan sebagai **mode demo**: seluruh alur bisa dicoba sampai Step 05, tetapi booking tidak disimpan.
 Di production, booking ditolak dengan pesan error bila Supabase belum dikonfigurasi (supaya pelanggan tidak transfer DP tanpa tercatat).
 
-## Mode lokal (sementara)
+## Terhubung dengan web admin
 
-Belum tersambung ke Supabase. Perubahan dari admin disimpan di `localStorage` browser dan langsung dipakai landing page **di browser yang sama** (muat ulang halaman booking untuk melihatnya). Gunakan *Pengaturan → Ekspor JSON* untuk mencadangkan menu. Admin belum memakai login — akan memakai Supabase Auth.
+Admin dan landing page memakai project Supabase yang sama:
+
+- Landing page membaca menu dari tabel `app_config` (key `catalog`) setiap kali dibuka, lalu mengirim booking ke tabel `bookings`.
+- Format menu ditetapkan di `src/shared/catalog.js`. File ini **identik** dengan yang ada di repo admin.
+- Bila Supabase belum diisi, belum ada menu tersimpan, atau database tidak bisa dihubungi, landing page memakai pricelist bawaan (`src/shared/catalog-default.js`).
+
+Skema tabel dan langkah setup ada di repo admin (`supabase/schema.sql`).
 
 ## Struktur
 
@@ -26,18 +32,17 @@ Belum tersambung ke Supabase. Perubahan dari admin disimpan di `localStorage` br
 | --- | --- |
 | `index.html` | Markup landing page |
 | `src/styles/booking.css` | Tampilan |
-| `src/booking/catalog.js` | **Menu bawaan**: layanan, grup paket, paket, add-on, S&K, label paket, pengaturan (DP %, rekening, WhatsApp, lama tahan jadwal) |
-| `src/booking/data.js` | `loadCatalog()` — satu-satunya pintu data menu ke landing page |
+| `src/shared/catalog.js` | Kontrak format menu (sama dengan repo admin) |
+| `src/shared/catalog-default.js` | Pricelist bawaan Kalaatma 2026 |
+| `src/booking/data.js` | `loadCatalog()`: ambil menu dari Supabase, atau pricelist bawaan |
 | `src/booking/config.js` | Konfigurasi dari environment variable |
 | `src/booking/main.js` | Logika booking |
-| `src/shared/store.js` | Penyimpanan katalog & log aktivitas (localStorage, nanti Supabase) |
-| `admin/index.html`, `src/admin/` | Web admin |
 
 ## Environment variable
 
 Salin `.env.example` ke `.env`, atau isi di Vercel → Project Settings → Environment Variables:
 
-- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — penyimpanan booking ke tabel `bookings`
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — membaca menu & menyimpan booking (project yang sama dengan admin)
 - `VITE_GOOGLE_MAPS_API_KEY` — opsional, preview peta di form lokasi
 
 ## Deploy ke Vercel
@@ -46,6 +51,5 @@ Import repo ini di Vercel; preset **Vite** terdeteksi otomatis (build `npm run b
 
 ## Rencana berikutnya
 
-- Tabel Supabase untuk katalog menu, log aktivitas, dan `bookings` (dengan RLS)
-- Login admin dengan Supabase Auth
-- Data booking masuk di dashboard admin
+- Setup project Supabase (lihat README repo admin)
+- Daftar booking masuk di dashboard admin
