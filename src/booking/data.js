@@ -1,17 +1,11 @@
 /* =========================================================
    SUMBER DATA MENU
    Satu-satunya pintu masuk data katalog ke landing page.
-   Saat web admin + tabel Supabase siap, cukup ganti isi
-   loadCatalog() untuk mengambil data dari database — bagian
-   tampilan tidak perlu diubah.
+   Isi katalog diatur dari web admin (/admin). Saat Supabase
+   siap, cukup ganti isi loadCatalog() — tampilan tidak berubah.
    ========================================================= */
-import { SERVICES, TERMS, PACKAGE_HIGHLIGHTS, SETTINGS } from './catalog.js';
+import { publicCatalog } from '../shared/store.js';
 
 export async function loadCatalog(){
-  return {
-    services:   SERVICES,
-    terms:      TERMS,
-    highlights: PACKAGE_HIGHLIGHTS,
-    settings:   SETTINGS
-  };
+  return publicCatalog();
 }

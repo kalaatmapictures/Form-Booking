@@ -6,7 +6,7 @@
 import { SUPABASE, GOOGLE_MAPS_API_KEY, supabaseReady, DEMO_MODE } from './config.js';
 import { loadCatalog } from './data.js';
 
-let DATA = {}, TERMS = {}, PACKAGE_HIGHLIGHTS = { bestSellerIds:[], recommendedIds:[] }, SETTINGS = {};
+let DATA = {}, TERMS = {}, SETTINGS = {};
 
 /* =========================================================
    3. STATE
@@ -53,9 +53,9 @@ function renderServices(){
   $('#svcGrid').innerHTML = Object.entries(DATA).map(([id,s]) => `
     <button type="button" class="card svc ${state.service===id?'sel':''}" data-svc="${id}">
       <span class="tick">✓</span>
-      <span class="eyebrow">${s.label}</span>
-      <span class="name">${s.title}</span>
-      <span class="d">${s.desc}</span>
+      <span class="eyebrow">${esc(s.label)}</span>
+      <span class="name">${esc(s.title)}</span>
+      <span class="d">${esc(s.desc)}</span>
     </button>`).join('');
   $$('[data-svc]').forEach(b => b.onclick = () => {
     const id = b.dataset.svc;
@@ -71,24 +71,29 @@ function renderServices(){
 /* =========================================================
    6. RENDER — STEP 2
    ========================================================= */
+/* Rekomendasi berdasarkan jumlah orang: paket di grup ber-"people"
+   yang rentang min–max-nya mencakup jumlah orang (diatur di admin). */
 function recommendation(){
-  const s = state.service, g = state.group, n = state.people;
-  if(s === 'family'){
-    if(n <= 4)  return {pkgIds:['fc-min','fc-std','fc-exc'], group:'classic',   text:`Untuk <b>${n} orang</b>, <b>Classic Package</b> adalah pilihan yang paling pas.`};
-    if(n <= 10) return {pkgIds:['fb-br'],  group:'bigfamily', text:`Untuk <b>${n} orang</b>, kami sarankan <b>Big Family — Bronze</b>.`};
-    if(n <= 20) return {pkgIds:['fb-sil'], group:'bigfamily', text:`Untuk <b>${n} orang</b>, kami sarankan <b>Big Family — Silver</b>.`};
-    return {pkgIds:[], text:'Untuk jumlah orang tersebut, kami akan membantu memberikan rekomendasi paket terbaik.'};
-  }
-  if(s === 'graduation' && g === 'group'){
-    if(n < 3)   return {pkgIds:[], text:'Untuk 1–2 orang, paket <b>Personal</b> atau <b>Couple</b> biasanya lebih sesuai.'};
-    if(n <= 5)  return {pkgIds:['gg-min'],  text:`Untuk <b>${n} orang</b>, kami sarankan <b>Minimalis</b>.`};
-    if(n <= 9)  return {pkgIds:['gg-sil'],  text:`Untuk <b>${n} orang</b>, kami sarankan <b>Silver</b>.`};
-    if(n <= 15) return {pkgIds:['gg-gold'], text:`Untuk <b>${n} orang</b>, kami sarankan <b>Gold</b>.`};
-    return {pkgIds:[], text:'Untuk jumlah orang tersebut, kami akan membantu memberikan rekomendasi paket terbaik.'};
-  }
-  return null;
-}
+  const s = svc(), n = state.people;
+  const peopleGroups = s.groups.filter(g => g.people);
+  const fits = p => p.min != null && p.max != null && n >= p.min && n <= p.max;
+  const matches = peopleGroups.flatMap(g => g.packages.filter(fits).map(p => ({g, p})));
+  const who = `Untuk <b>${n} orang</b>`;
 
+  if(!matches.length){
+    const mins = peopleGroups.flatMap(g => g.packages.map(p => p.min)).filter(v => v != null);
+    const others = s.groups.filter(g => !g.people);
+    if(mins.length && n < Math.min(...mins) && others.length)
+      return {pkgIds:[], text:`${who}, paket ${others.map(g => `<b>${esc(g.label)}</b>`).join(' atau ')} biasanya lebih sesuai.`};
+    return {pkgIds:[], text:'Untuk jumlah orang tersebut, kami akan membantu memberikan rekomendasi paket terbaik.'};
+  }
+  const pkgIds = matches.map(m => m.p.id);
+  const groups = [...new Set(matches.map(m => m.g))];
+  if(groups.length === 1 && groups[0].packages.every(fits))
+    return {pkgIds, text:`${who}, <b>${esc(groups[0].label)}</b> adalah pilihan yang paling pas.`};
+  const names = matches.map(m => (m.g.id !== state.group ? esc(m.g.label) + ' — ' : '') + esc(m.p.name));
+  return {pkgIds, text:`${who}, kami sarankan <b>${names.join('</b> atau <b>')}</b>.`};
+}
 
 function renderStep2(){
   const s = svc(); if(!s) return;
@@ -101,7 +106,7 @@ function renderStep2(){
   if(s.groups.length > 1){
     tabs.hidden = false;
     tabs.innerHTML = s.groups.map(g =>
-      `<button type="button" class="tab ${state.group===g.id?'on':''}" data-grp="${g.id}">${g.label}</button>`).join('');
+      `<button type="button" class="tab ${state.group===g.id?'on':''}" data-grp="${g.id}">${esc(g.label)}</button>`).join('');
     $$('[data-grp]').forEach(b => b.onclick = () => {
       state.group = b.dataset.grp; state.pkg = null; state.addons = {};
       renderStep2(); syncNav();
@@ -119,9 +124,9 @@ function renderStep2(){
   const list = g ? g.packages : [];
   $('#pkgGrid').className = 'grid ' + (list.length >= 3 ? 'two' : 'two');
   $('#pkgGrid').innerHTML = list.map(p => {
-    const isReco = reco ? reco.pkgIds.includes(p.id) : PACKAGE_HIGHLIGHTS.recommendedIds.includes(p.id);
-    const isBestSeller = p.bestSeller === true || PACKAGE_HIGHLIGHTS.bestSellerIds.includes(p.id);
-    const isRecommended = isReco || p.recommended === true;
+    // di grup berbasis jumlah orang, label mengikuti rekomendasi; selain itu dari admin
+    const isRecommended = reco ? reco.pkgIds.includes(p.id) : p.recommended === true;
+    const isBestSeller = p.bestSeller === true;
     const total  = p.perPerson ? p.price * state.people : null;
     return `
     <button type="button" class="card pkg ${isBestSeller?'is-bestseller':''} ${isRecommended?'is-recommended':''} ${state.pkg===p.id?'sel':''}" data-pkg="${p.id}" aria-pressed="${state.pkg===p.id}">
@@ -129,12 +134,12 @@ function renderStep2(){
       ${isBestSeller || isRecommended ? `<div class="package-highlights">${isBestSeller ? '<span class="package-badge bestseller">BEST SELLER</span>' : ''}${isRecommended ? '<span class="package-badge recommended">RECOMMENDED</span>' : ''}</div>` : ''}
       <div class="top">
         <div>
-          <div class="pname">${p.name}</div>
+          <div class="pname">${esc(p.name)}</div>
           <div class="price">${rp(p.price)}${p.perPerson?' <small>/ orang</small>':''}</div>
           ${p.perPerson ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">${state.people} orang × ${rp(p.price)} = <b style="color:var(--primary);font-weight:600">${rp(total)}</b></div>` : ''}
         </div>
       </div>
-      <ul>${p.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+      <ul>${p.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>
     </button>`;
   }).join('');
   $$('[data-pkg]').forEach(b => b.onclick = () => { state.pkg = b.dataset.pkg; renderStep2(); syncNav(); });
@@ -157,14 +162,14 @@ function renderAddons(){
       <button type="button" style="display:flex;gap:13px;align-items:flex-start;width:100%;text-align:left" data-addon="${a.id}">
         <span class="box">✓</span>
         <span>
-          <span class="an">${a.name}</span>
-          ${a.unit?`<span class="ad">per ${a.unit}</span>`:''}
+          <span class="an">${esc(a.name)}</span>
+          ${a.unit?`<span class="ad">per ${esc(a.unit)}</span>`:''}
         </span>
         <span class="ap">+${rp(a.price)}</span>
       </button>
       ${on && a.qty ? `
       <div class="qty-row" style="width:100%">
-        <span class="ql">Jumlah (${a.unit})</span>
+        <span class="ql">Jumlah (${esc(a.unit)})</span>
         <span class="stepper" data-aq="${a.id}">
           <button type="button" data-d="-1" ${q<=1?'disabled':''}>−</button>
           <span class="v">${q}</span>
@@ -533,7 +538,7 @@ function renderStep4(){
   const ad = activeAddons();
   let pr = `<div class="row"><span class="k">Package${p&&p.perPerson?` (${state.people} × ${rp(p.price)})`:''}</span><span class="v">${rp(packagePrice())}</span></div>`;
   if(ad.length){
-    ad.forEach(a => pr += `<div class="row"><span class="k">${a.name}${a.qty>1?` ×${a.qty}`:''}</span><span class="v">${rp(a.total)}</span></div>`);
+    ad.forEach(a => pr += `<div class="row"><span class="k">${esc(a.name)}${a.qty>1?` ×${a.qty}`:''}</span><span class="v">${rp(a.total)}</span></div>`);
   } else {
     pr += `<div class="row"><span class="k">Add-ons</span><span class="v">${rp(0)}</span></div>`;
   }
@@ -546,7 +551,7 @@ function renderStep4(){
     `<div class="row"><span class="k">Sisa pelunasan</span><span class="v">${rp(remainingPrice())}</span></div>`;
   $('#dpOut').textContent = rp(dpPrice());
 
-  const t = TERMS[svc().terms];
+  const t = TERMS[svc().terms] || {label:'', title:'Syarat & Ketentuan', list:[]};
   $('#termsFor').textContent = t.label;
 }
 
@@ -607,9 +612,9 @@ $('#nextBtn').onclick  = () => {
 
 /* terms */
 $('#termsOpen').onclick = () => {
-  const t = TERMS[svc().terms];
+  const t = TERMS[svc().terms] || {label:'', title:'Syarat & Ketentuan', list:[]};
   $('#mTitle').textContent = t.title;
-  $('#mList').innerHTML = t.list.map(i=>`<li>${i}</li>`).join('');
+  $('#mList').innerHTML = t.list.map(i=>`<li>${esc(i)}</li>`).join('');
   $('#modal').classList.add('open');
 };
 $$('#modal [data-close]').forEach(b => b.onclick = () => $('#modal').classList.remove('open'));
@@ -809,7 +814,6 @@ async function init(){
   const catalog = await loadCatalog();
   DATA = catalog.services;
   TERMS = catalog.terms;
-  PACKAGE_HIGHLIGHTS = catalog.highlights;
   SETTINGS = catalog.settings;
   applySettings();
 
