@@ -646,6 +646,8 @@ function buildPayload(){
   return {
     booking_id: newBookingId(),
     service: s.label,
+    service_id: state.service,     // id dipakai server untuk menghitung ulang harga dari menu
+    package_id: p.id,
     sub_category: s.groups.length > 1 ? g.label : null,
     package_name: p.name,
     package_price: packagePrice(),
@@ -663,7 +665,7 @@ function buildPayload(){
     notes: f.notes || null,
     estimated_total: totalPrice(),
     estimated_dp: dpPrice(),
-    remaining_payment: remainingPrice(),
+    estimated_remaining: remainingPrice(),
     status: 'NEW',
     bride_name: s.couple ? f.bride : null,
     bride_instagram: s.couple ? f.brideIg : null,
@@ -673,24 +675,33 @@ function buildPayload(){
     client_instagram: s.couple ? null : f.clientIg
   };
 }
+/* Server menghitung ulang harga dari menu terbaru (lihat skema Supabase).
+   { ok } | { ok:false, unavailable:true } bila paket/add-on baru saja dinonaktifkan admin */
 async function saveToSupabase(payload){
   if(DEMO_MODE) return {ok:true, demo:true};
   if(!supabaseReady()) return {ok:false, reason:'Supabase belum dikonfigurasi'};
-  try{
-    const res = await fetch(`${SUPABASE.url.replace(/\/+$/,'')}/rest/v1/${SUPABASE.table}`, {
-      method:'POST',
-      headers:{
-        'apikey': SUPABASE.anonKey,
-        'Authorization': 'Bearer ' + SUPABASE.anonKey,
-        'Content-Type': 'application/json',
-        // minimal: anon boleh menulis tanpa perlu izin membaca tabel
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok) return {ok:false, reason:`${res.status} — ${await res.text()}`};
-    return {ok:true};
-  }catch(err){ return {ok:false, reason:err.message}; }
+  for(let attempt = 0; attempt < 3; attempt++){
+    try{
+      const res = await fetch(`${SUPABASE.url.replace(/\/+$/,'')}/rest/v1/${SUPABASE.table}`, {
+        method:'POST',
+        headers:{
+          'apikey': SUPABASE.anonKey,
+          'Authorization': 'Bearer ' + SUPABASE.anonKey,
+          'Content-Type': 'application/json',
+          // minimal: anon boleh menulis tanpa perlu izin membaca tabel
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+      if(res.ok) return {ok:true};
+      const text = await res.text();
+      // Booking ID kebetulan sudah dipakai → buat ID baru lalu coba lagi
+      if(res.status === 409 && /booking_id/.test(text)){ payload.booking_id = newBookingId(); continue; }
+      if(/tidak tersedia/.test(text)) return {ok:false, unavailable:true, reason:text};
+      return {ok:false, reason:`${res.status} — ${text}`};
+    }catch(err){ return {ok:false, reason:err.message}; }
+  }
+  return {ok:false, reason:'Booking ID bentrok berulang kali'};
 }
 
 
@@ -733,7 +744,10 @@ async function submit(){
   if(!result.ok){
     let error = document.getElementById('bookingError');
     if(!error){error = document.createElement('div');error.id='bookingError';error.setAttribute('role','alert');document.getElementById('s4').prepend(error);}
-    error.textContent = 'Booking belum berhasil dikirim. Detail Anda tetap tersedia. Silakan coba lagi; jangan transfer DP sebelum booking berhasil diterima.';
+    error.textContent = result.unavailable
+      ? 'Paket atau add-on yang Anda pilih baru saja diperbarui oleh tim Kalaatma. Muat ulang halaman untuk melihat pilihan terbaru; jangan transfer DP sebelum booking berhasil diterima.'
+      : 'Booking belum berhasil dikirim. Detail Anda tetap tersedia. Silakan coba lagi; jangan transfer DP sebelum booking berhasil diterima.';
+    if(!result.unavailable) console.warn('[Kalaatma] Simpan gagal:', result.reason);
     state.submitting = false;
     syncNav();
     error.scrollIntoView({behavior:'smooth',block:'center'});
@@ -746,11 +760,11 @@ async function submit(){
   $('#payDp').textContent    = rp(payload.estimated_dp);
   $('#payDp2').textContent   = rp(payload.estimated_dp);
   $('#payTotal').textContent = rp(payload.estimated_total);
-  $('#payRest').textContent  = rp(payload.remaining_payment);
+  $('#payRest').textContent  = rp(payload.estimated_remaining);
   $('#okRows').innerHTML = summaryRows() +
     `<div class="row"><span class="k">Estimated Total</span><span class="v">${rp(payload.estimated_total)}</span></div>` +
     `<div class="row"><span class="k">Estimated DP (${SETTINGS.dpPercent}%)</span><span class="v">${rp(payload.estimated_dp)}</span></div>` +
-    `<div class="row"><span class="k">Sisa pelunasan</span><span class="v">${rp(payload.remaining_payment)}</span></div>`;
+    `<div class="row"><span class="k">Sisa pelunasan</span><span class="v">${rp(payload.estimated_remaining)}</span></div>`;
 
   $('#savedNote').innerHTML = result.demo
     ? '<b class="warn">Mode demo</b> — Supabase belum dikonfigurasi, booking ini tidak disimpan.'

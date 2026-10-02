@@ -16,15 +16,17 @@ npm run build      # hasil di dist/
 Tanpa `.env`, mode development berjalan sebagai **mode demo**: seluruh alur bisa dicoba sampai Step 05, tetapi booking tidak disimpan.
 Di production, booking ditolak dengan pesan error bila Supabase belum dikonfigurasi (supaya pelanggan tidak transfer DP tanpa tercatat).
 
-## Terhubung dengan web admin
+## Terhubung dengan BMS (web admin)
 
-Admin dan landing page memakai project Supabase yang sama:
+Landing page dan BMS ([`web-admin-booking`](https://github.com/marselcerebrum-jpg/web-admin-booking)) memakai satu project Supabase:
 
-- Landing page membaca menu dari tabel `app_config` (key `catalog`) setiap kali dibuka, lalu mengirim booking ke tabel `bookings`.
-- Format menu ditetapkan di `src/shared/catalog.js`. File ini **identik** dengan yang ada di repo admin.
-- Bila Supabase belum diisi, belum ada menu tersimpan, atau database tidak bisa dihubungi, landing page memakai pricelist bawaan (`src/shared/catalog-default.js`).
+- Menu (layanan, paket, harga, add-on, S&K, DP %, rekening, WhatsApp) dibaca dari tabel `app_config` setiap kali halaman dibuka, jadi perubahan di BMS langsung tampil.
+- Booking dikirim ke tabel `bookings` dan muncul di BMS sebagai booking baru (Joblist kolom Booking).
+- Harga booking dihitung ulang oleh database dari menu terbaru; bila paket baru saja dinonaktifkan admin, pelanggan diminta memuat ulang halaman.
+- Format menu ditetapkan di `src/shared/catalog.js`, **identik** dengan repo BMS.
+- Bila Supabase belum diisi, belum ada menu tersimpan, atau database tidak bisa dihubungi, landing page memakai pricelist bawaan.
 
-Skema tabel dan langkah setup ada di repo admin (`supabase/schema.sql`).
+Skema database & langkah setup: repo BMS, `supabase/schema.sql` dan README-nya.
 
 ## Struktur
 
@@ -48,8 +50,3 @@ Salin `.env.example` ke `.env`, atau isi di Vercel → Project Settings → Envi
 ## Deploy ke Vercel
 
 Import repo ini di Vercel; preset **Vite** terdeteksi otomatis (build `npm run build`, output `dist`).
-
-## Rencana berikutnya
-
-- Setup project Supabase (lihat README repo admin)
-- Daftar booking masuk di dashboard admin
