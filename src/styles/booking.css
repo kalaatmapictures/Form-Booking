@@ -623,3 +623,11 @@ main{max-width:1000px;padding-top:44px}
   .nav .btn{flex:1}
 }
 .pay-hero h2{font-size:clamp(32px,5vw,46px);font-weight:700;line-height:1.1;margin:6px 0 0}
+/* isi otomatis browser (autofill) tetap mengikuti warna tema, tidak biru */
+.f input:-webkit-autofill,.f input:-webkit-autofill:hover,.f input:-webkit-autofill:focus,
+.f textarea:-webkit-autofill,.f select:-webkit-autofill{
+  -webkit-box-shadow:0 0 0 1000px #1A1815 inset;box-shadow:0 0 0 1000px #1A1815 inset;
+  -webkit-text-fill-color:var(--ink);caret-color:var(--ink);
+  border:1px solid var(--line);transition:background-color 99999s ease-in-out 0s}
+.f input:-webkit-autofill:focus{border-color:var(--primary);-webkit-box-shadow:0 0 0 1000px #1A1815 inset,0 0 0 4px rgba(216,196,160,.12)}
+.f input:autofill{background:#1A1815;color:var(--ink)}
