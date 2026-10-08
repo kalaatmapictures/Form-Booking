@@ -579,7 +579,7 @@ function canProceed(){
 function syncNav(){
   const n = $('#nextBtn');
   n.disabled = !canProceed();
-  n.textContent = state.step === 4 ? 'Konfirmasi booking' : 'Lanjut';
+  n.textContent = state.step === 4 ? 'Kirim & lanjut ke WhatsApp' : 'Lanjut';
   const showEst = state.step >= 2 && state.step <= 4 && state.pkg;
   $('#estBox').hidden = !showEst;
   if(showEst) $('#estOut').textContent = rp(totalPrice());
@@ -595,7 +595,7 @@ function goto(step){
   document.body.dataset.step = step;
   $('#landing').style.display = step === 0 ? '' : 'none';
   $('#progress').hidden = step === 0;
-  $('#nav').hidden = step === 0 || step > 4;   // step 5 tidak butuh tombol Lanjut
+  $('#nav').hidden = step === 0 || step > 4;   // layar 5 (terkirim → WhatsApp) tidak butuh tombol Lanjut
   $$('.screen').forEach(s => s.classList.remove('active'));
   if(step >= 1 && step <= 5) $('#s'+step).classList.add('active');
   if(step === 2) renderStep2();
@@ -724,34 +724,6 @@ async function saveToSupabase(payload){
 }
 
 
-/* ---------- Hitung mundur 1 jam untuk transfer DP ---------- */
-let cdTimer = null;
-const CD_MARKUP = document.getElementById('cdBox').innerHTML;
-const CD_NOTE = document.getElementById('cdNote').innerHTML;
-function startCountdown(minutes = 60){
-  const end = Date.now() + minutes * 60000;
-  clearInterval(cdTimer);
-  // pulihkan tampilan timer bila booking sebelumnya sempat kedaluwarsa
-  $('#cdBox').innerHTML = CD_MARKUP;
-  $('#cdNote').innerHTML = CD_NOTE;
-  $('#holdLabel').textContent = holdLabel(minutes);
-  const pad = n => String(n).padStart(2,'0');
-  const tick = () => {
-    const left = end - Date.now();
-    if(left <= 0){
-      clearInterval(cdTimer);
-      $('#cdBox').innerHTML = '<div class="expired">Waktu tahan jadwal sudah habis.</div>';
-      $('#cdNote').textContent = 'Tenang, tanggal Anda mungkin masih tersedia. Hubungi kami lewat WhatsApp untuk memastikan.';
-      return;
-    }
-    $('#cdM').textContent = pad(Math.floor(left / 60000));
-    $('#cdS').textContent = pad(Math.floor(left % 60000 / 1000));
-    $('#cdTimer')?.classList.toggle('out', left < 10 * 60000);
-  };
-  tick();
-  cdTimer = setInterval(tick, 1000);
-}
-
 async function submit(){
   state.submitting = true;
   const btn = $('#nextBtn');
@@ -776,21 +748,13 @@ async function submit(){
   state.booking = payload;
 
   $('#bidOut').textContent = payload.booking_id;
-  $('#payDp').textContent    = rp(payload.estimated_dp);
-  $('#payDp2').textContent   = rp(payload.estimated_dp);
-  $('#payTotal').textContent = rp(payload.estimated_total);
-  $('#payRest').textContent  = rp(payload.estimated_remaining);
-  $('#okRows').innerHTML = summaryRows() +
-    `<div class="row"><span class="k">Estimated Total</span><span class="v">${rp(payload.estimated_total)}</span></div>` +
-    `<div class="row"><span class="k">Estimated DP (${SETTINGS.dpPercent}%)</span><span class="v">${rp(payload.estimated_dp)}</span></div>` +
-    `<div class="row"><span class="k">Sisa pelunasan</span><span class="v">${rp(payload.estimated_remaining)}</span></div>`;
-
   $('#savedNote').innerHTML = result.demo
     ? '<b class="warn">Mode demo</b> — Supabase belum dikonfigurasi, booking ini tidak disimpan.'
-    : 'Data booking <b>tersimpan</b> di database Kalaatma.';
+    : '';
 
+  // pembayaran & konfirmasi dilakukan penuh lewat WhatsApp admin
   const msg = encodeURIComponent(
-    `Halo Kalaatma Pictures, saya mau konfirmasi pembayaran DP.\n\n` +
+    `Halo Kalaatma Pictures, saya baru saja mengisi form booking.\n\n` +
     `Booking ID: ${payload.booking_id}\n` +
     `Nama: ${payload.bride_name ? payload.bride_name + ' & ' + payload.groom_name : payload.client_name}\n` +
     `Service: ${payload.service}${payload.sub_category ? ' — ' + payload.sub_category : ''}\n` +
@@ -799,35 +763,21 @@ async function submit(){
     `Jam: ${fmtTime12(payload.session_time)} – ${fmtTime12(payload.session_end_time)} WIB\n` +
     `Lokasi: ${payload.location}\n` +
     (payload.map_link ? `Titik lokasi: ${payload.map_link}\n` : '') +
-    `\nTotal: ${rp(payload.estimated_total)}\n` +
+    `\nEstimasi total: ${rp(payload.estimated_total)}\n` +
     `DP ${SETTINGS.dpPercent}%: ${rp(payload.estimated_dp)}\n\n` +
-    `Bukti transfer saya lampirkan di chat ini.`
+    `Mohon info untuk konfirmasi jadwal dan pembayarannya. Terima kasih!`
   );
-  $('#waBtn').href = `https://wa.me/${SETTINGS.whatsapp.paymentConfirm}?text=${msg}`;
+  const waUrl = `https://wa.me/${SETTINGS.whatsapp.paymentConfirm}?text=${msg}`;
+  $('#waBtn').href = waUrl;
 
-  btn.innerHTML = 'Konfirmasi booking';
+  btn.innerHTML = 'Kirim & lanjut ke WhatsApp';
   state.submitting = false;
   goto(5);
-  startCountdown(SETTINGS.holdMinutes);
+  setTimeout(() => { window.location.href = waUrl; }, 900);
 }
-
-$('#copyAcct').onclick = async () => {
-  const btn = $('#copyAcct'), no = $('#acctNo').textContent.trim();
-  try{ await navigator.clipboard.writeText(no); }
-  catch(e){
-    const ta = document.createElement('textarea');
-    ta.value = no; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); }catch(_){}
-    ta.remove();
-  }
-  btn.textContent = 'Tersalin';
-  setTimeout(() => btn.textContent = 'Salin', 1800);
-};
 
 $('#homeBtn').onclick = () => {
   Object.assign(state, {step:0, service:null, group:null, pkg:null, addons:{}, people:1, agreed:false, booking:null, map:{link:null,lat:null,lng:null}});
-  clearInterval(cdTimer);
   $('#form').reset();
   TP.time?.clear(); TP.endtime?.clear();
   $('#agreeBtn').classList.remove('sel');
@@ -838,16 +788,8 @@ $('#homeBtn').onclick = () => {
 /* =========================================================
    12. INIT
    ========================================================= */
-function holdLabel(min){
-  if(min % 60 === 0) return min === 60 ? 'satu jam' : `${min/60} jam`;
-  return `${min} menit`;
-}
 function applySettings(){
   $$('[data-dp-pct]').forEach(el => el.textContent = SETTINGS.dpPercent);
-  $('#acctBank').textContent = SETTINGS.bank.name;
-  $('#acctNo').textContent   = SETTINGS.bank.accountNo;
-  $('#acctName').textContent = 'a.n. ' + SETTINGS.bank.accountName;
-  $('#holdLabel').textContent = holdLabel(SETTINGS.holdMinutes);
 }
 
 async function init(){
