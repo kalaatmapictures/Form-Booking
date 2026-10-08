@@ -4,21 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Booking sesi foto & video Kalaatma Pictures — wedding, prewedding, engagement, graduation, family, dan maternity.">
-<meta name="theme-color" content="#080808">
+<meta name="theme-color" content="#F3EEE8">
 <title>Kalaatma Pictures — Book Your Moment</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/styles/booking.css">
 </head>
 <body>
 
-<!-- ============ HERO ============ -->
-<section id="hero">
-<div class="panel">
-<div class="hero-top"><span class="wordmark">KALAATMA<span>®</span></span><span class="hero-meta">PICTURES &amp; STORIES<br>TELLING LOVE THROUGH PICTURES</span></div>
-<div class="hero-content"><div class="hero-kicker">BOOK YOUR MOMENT</div><h1>MOMEN ANDA.<br><span>CERITA</span><br>SELAMANYA.</h1><div class="hero-bottom"><p class="sub">Pilih layanan, tentukan paket, dan ceritakan momen yang ingin Anda abadikan.</p><button class="btn big" id="startBtn">Mulai booking</button></div></div>
-<div class="hero-index"><span>01 / PILIH LAYANAN</span><span>02 / TENTUKAN PAKET</span><span>03 / CERITAKAN MOMEN</span></div>
-</div>
-</section>
+<!-- ============ LANDING (diisi dari konten: src/booking/landing.js) ============ -->
+<div id="landing"></div>
 
 <!-- ============ PROGRESS ============ -->
 <header id="progress" hidden>
@@ -44,7 +41,7 @@
   <section class="screen" id="s1">
     <div class="shead">
       <div class="eyebrow">Step 01 — Service</div>
-      <h2>PILIH LAYANAN ANDA</h2>
+      <h2>Pilih layanan Anda</h2>
       <p>Pilih layanan yang paling sesuai dengan momen Anda.</p>
     </div>
     <div class="grid two" id="svcGrid"></div>
@@ -84,7 +81,7 @@
   <section class="screen" id="s3">
     <div class="shead">
       <div class="eyebrow">Step 03 — Details</div>
-      <h2>DETAIL MOMEN ANDA</h2>
+      <h2>Detail momen Anda</h2>
       <p>Data ini kami pakai untuk konfirmasi dan menyiapkan kebutuhan crew.</p>
     </div>
 
@@ -179,7 +176,7 @@
   <section class="screen" id="s4">
     <div class="shead">
       <div class="eyebrow">Step 04 — Confirm</div>
-      <h2>TINJAU BOOKING ANDA</h2>
+      <h2>Tinjau booking Anda</h2>
       <p>Periksa kembali sebelum dikirim. Tim kami akan mengonfirmasi lewat WhatsApp.</p>
     </div>
 
