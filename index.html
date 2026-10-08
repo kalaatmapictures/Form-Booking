@@ -98,12 +98,12 @@
 
       <fieldset class="fs">
         <legend>Session Details</legend>
-        <div class="f" id="f-date">
-          <label for="date">Tanggal Sesi <span class="req">*</span></label>
-          <input id="date" name="date" type="date">
-          <div class="err">Pilih tanggal sesi.</div>
-        </div>
-        <div class="fgrid two mt16">
+        <div class="fgrid two dt-row">
+          <div class="f" id="f-date">
+            <label for="date">Tanggal Sesi <span class="req">*</span></label>
+            <input id="date" name="date" type="date">
+            <div class="err">Pilih tanggal sesi.</div>
+          </div>
           <div class="f" id="f-time">
             <label id="lb-time">Jam Mulai <span class="req">*</span></label>
             <button type="button" class="ttrig" data-clock="time" aria-haspopup="dialog">
@@ -113,16 +113,8 @@
             <input id="time" name="time" type="hidden">
             <div class="err">Pilih jam mulai.</div>
           </div>
-          <div class="f" id="f-endtime">
-            <label id="lb-endtime">Jam Selesai <span class="req">*</span></label>
-            <button type="button" class="ttrig" data-clock="endtime" aria-haspopup="dialog">
-              <span class="tv" data-tv="endtime">--:--</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            </button>
-            <input id="endtime" name="endtime" type="hidden">
-            <div class="err">Jam selesai harus setelah jam mulai.</div>
-          </div>
         </div>
+        <div class="hint mt8" id="endHint" hidden></div>
         <div class="f mt16" id="f-loc">
           <label for="loc">Lokasi <span class="req">*</span></label>
           <input id="loc" name="loc" type="text" placeholder="Masukkan lokasi acara / sesi foto">

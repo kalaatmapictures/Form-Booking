@@ -631,3 +631,9 @@ main{max-width:1000px;padding-top:44px}
   border:1px solid var(--line);transition:background-color 99999s ease-in-out 0s}
 .f input:-webkit-autofill:focus{border-color:var(--primary);-webkit-box-shadow:0 0 0 1000px #1A1815 inset,0 0 0 4px rgba(216,196,160,.12)}
 .f input:autofill{background:#1A1815;color:var(--ink)}
+#endHint{font-size:13px;color:var(--ink-2);font-weight:400;padding:10px 14px;border-radius:12px;background:rgba(216,196,160,.06);border:1px solid rgba(216,196,160,.18)}
+#endHint b{color:var(--primary);font-weight:600}
+/* tanggal & jam mulai selalu sejajar, juga di HP */
+.fgrid.dt-row{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:10px}
+.dt-row .f input[type=date],.dt-row .ttrig{width:100%;min-width:0}
+@media(max-width:420px){ .dt-row .f input[type=date],.dt-row .ttrig{padding-left:12px;padding-right:10px;font-size:14px} }

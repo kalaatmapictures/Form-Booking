@@ -416,13 +416,9 @@ function openClock(key){
   const cur = $('#' + key).value;
   let base;
   if(cur) base = from24(cur);
-  else if(key === 'endtime' && $('#time').value){
-    // default jam selesai: dua jam setelah jam mulai
-    const st = $('#time').value.split(':').map(Number);
-    base = from24(`${pad2((st[0] + 2) % 24)}:${pad2(st[1])}`);
-  } else base = { h: key === 'endtime' ? 5 : 9, m: 0, mer: key === 'endtime' ? 'PM' : 'AM' };
+  else base = { h: 9, m: 0, mer: 'AM' };
   Object.assign(CK, base, { mode:'h' });
-  $('#ckLabel').textContent = key === 'time' ? 'Jam Mulai' : 'Jam Selesai';
+  $('#ckLabel').textContent = 'Jam Mulai';
   ckRender();
   $('#clockModal').classList.add('open');
   $('#ckFace').focus();
@@ -479,7 +475,7 @@ $('#ckOk').onclick = () => { setTime(CK.key, hhmm(CK.h, CK.m, CK.mer)); closeClo
 })();
 
 /* API yang dipakai reset form dan pengisian dari luar */
-['time','endtime'].forEach(k => {
+['time'].forEach(k => {
   TP[k] = { set: v => setTime(k, v), clear: () => setTime(k, '') };
   syncTrigger(k);
 });
@@ -487,6 +483,36 @@ $('#ckOk').onclick = () => { setTime(CK.key, hhmm(CK.h, CK.m, CK.mer)); closeClo
 /* =========================================================
    8. VALIDATION
    ========================================================= */
+/* Durasi sesi dibaca dari fitur paket ("4 Jam Kerja", "90 Minutes Photo Session").
+   Jam selesai = jam mulai + durasi; kosong bila paket tidak menyebut durasi. */
+function pkgMinutes(){
+  for(const it of pkg()?.items || []){
+    const t = String(it).trim();
+    let m = t.match(/^(\d+(?:[.,]\d+)?)\s*(?:jam|hours?)(?:\s+(?:kerja|photo\s+session|session|sesi))?$/i);
+    if(m) return Math.round(parseFloat(m[1].replace(',', '.')) * 60);
+    m = t.match(/^(\d+)\s*(?:menit|minutes?)(?:\s+(?:photo\s+session|session|sesi))?$/i);
+    if(m) return Number(m[1]);
+  }
+  return 0;
+}
+function endTime(start){
+  const dur = pkgMinutes();
+  if(!start || !dur) return '';
+  const [h, m] = start.split(':').map(Number), total = h * 60 + m + dur;
+  if(total >= 24 * 60) return '';                 // lewat tengah malam — biar admin yang atur
+  return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
+}
+function syncEndHint(){
+  const el = $('#endHint'); if(!el) return;
+  const dur = pkgMinutes(), start = $('#time').value, end = endTime(start);
+  const durTxt = !dur ? '' : dur % 60 ? (dur >= 60 ? `${Math.floor(dur/60)} jam ${dur%60} menit` : `${dur} menit`) : `${dur/60} jam`;
+  el.hidden = !dur;
+  el.innerHTML = !dur ? '' : end
+    ? `Durasi paket <b>${durTxt}</b> — sesi selesai sekitar <b>${fmtTime12(end)} WIB</b>.`
+    : `Durasi paket <b>${durTxt}</b>. Jam selesai menyesuaikan jam mulai.`;
+}
+$('#time').addEventListener('input', syncEndHint);
+
 const waRe = /^(?:\+62|62|0)8[1-9][0-9]{6,11}$/;
 const usesPeople = () => !!svc()?.usesPeople;
 function readForm(){
@@ -496,7 +522,7 @@ function readForm(){
     bride:v('bride'), brideIg:ig('brideIg'), groom:v('groom'), groomIg:ig('groomIg'),
     client:v('client'), clientIg:ig('clientIg'),
     wa:v('wa').replace(/[\s\-().]/g,''), date:v('date'),
-    time:v('time'), endtime:v('endtime'),
+    time:v('time'), endtime:endTime(v('time')),
     loc:v('loc'), notes:v('notes')
   };
 }
@@ -508,7 +534,6 @@ function validate(mark){
   need('wa', waRe.test(f.wa));
   need('date', !!f.date);
   need('time', !!f.time);
-  need('endtime', !!f.endtime && !!f.time && f.endtime > f.time);
   need('loc', !!f.loc);
   return bad.length === 0;
 }
@@ -541,7 +566,7 @@ function summaryRows(){
   const ad = activeAddons();
   if(ad.length) out += row('Add-ons', ad.map(a => a.name + (a.qty>1?` ×${a.qty}`:'')).join(', '));
   out += row('Date', fmtDate(f.date));
-  out += row('Time', f.time && f.endtime ? `${fmtTime12(f.time)} – ${fmtTime12(f.endtime)} WIB` : '—');
+  out += row('Time', !f.time ? '—' : f.endtime ? `${fmtTime12(f.time)} – ${fmtTime12(f.endtime)} WIB` : `${fmtTime12(f.time)} WIB`);
   const mapNote = state.map.lat != null
     ? `📍 ${state.map.lat.toFixed(5)}, ${state.map.lng.toFixed(5)}`
     : (state.map.link ? 'Link Maps terlampir' : '');
@@ -612,6 +637,7 @@ function goto(step){
     renderIdentity();
     $('#peopleFs').hidden = !usesPeople();
     initMapControls();
+    syncEndHint();
     syncPeople();
   }
   if(step === 4) renderStep4();
@@ -684,7 +710,7 @@ function buildPayload(){
     number_of_people: usesPeople() ? state.people : null,
     session_date: f.date,
     session_time: f.time,
-    session_end_time: f.endtime,
+    session_end_time: f.endtime || null,
     location: f.loc,
     map_link: state.map.link,
     latitude: state.map.lat,
@@ -769,7 +795,7 @@ async function submit(){
     `Service: ${payload.service}${payload.sub_category ? ' — ' + payload.sub_category : ''}\n` +
     `Package: ${payload.package_name}\n` +
     `Tanggal: ${fmtDate(payload.session_date)}\n` +
-    `Jam: ${fmtTime12(payload.session_time)} – ${fmtTime12(payload.session_end_time)} WIB\n` +
+    `Jam: ${fmtTime12(payload.session_time)}${payload.session_end_time ? ' – ' + fmtTime12(payload.session_end_time) : ''} WIB\n` +
     `Lokasi: ${payload.location}\n` +
     (payload.map_link ? `Titik lokasi: ${payload.map_link}\n` : '') +
     `\nEstimasi total: ${rp(payload.estimated_total)}\n` +
@@ -791,7 +817,7 @@ $('#homeBtn').onclick = () => {
   Object.keys(IDENT).forEach(k => delete IDENT[k]);
   delete $('#identity').dataset.mode;
   $('#identity').innerHTML = '';
-  TP.time?.clear(); TP.endtime?.clear();
+  TP.time?.clear();
   $('#agreeBtn').classList.remove('sel');
   $$('.f').forEach(f => f.classList.remove('bad'));
   goto(0);
