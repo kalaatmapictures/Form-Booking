@@ -1,5 +1,6 @@
 /* =========================================================
-   HALAMAN PERTAMA — cover + 3 testimoni. Isi dari konten
+   HALAMAN PERTAMA — satu layar: foto penuh, teks & 3 testimoni
+   di atas foto. Isi dari konten
    (web admin → Menu → Konten). Tombol [data-start] memulai booking.
    ========================================================= */
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -32,7 +33,7 @@ export function renderLanding(el, content, _services){
         <span class="cv-sprig">${SPRIG}</span>
         <span><b>${esc(b.name)}</b><small>${esc(b.tagline)}</small></span>
       </div>
-      <button class="cv-btn sm" data-start>${esc(h.cta)}</button>
+      <button class="cv-btn line sm" data-start>${esc(h.cta)}</button>
     </header>
 
     <div class="cv-body">
@@ -42,32 +43,25 @@ export function renderLanding(el, content, _services){
       <button class="cv-btn" id="startBtn" data-start>${esc(h.cta)} ${ARROW}</button>
     </div>
 
-    ${testi.length ? `<a class="cv-scroll" href="#testimoni" aria-label="Lihat testimoni"><span></span></a>` : ''}
-  </section>
+    ${testi.length ? `<div class="cv-testi" id="testimoni">
+      <div class="cv-testi-h"><span class="cv-eyebrow"><i></i>${esc(c.testimonials.eyebrow)}</span><h2>${esc(c.testimonials.title)}</h2></div>
+      <div class="cv-testi-grid">${testi.map(t => `
+        <figure>
+          ${stars(t.rating)}
+          <blockquote>“${esc(t.text)}”</blockquote>
+          <figcaption>
+            ${safeUrl(t.photo) ? `<img src="${esc(safeUrl(t.photo))}" alt="" loading="lazy" decoding="async">` : `<span class="cv-av">${esc((t.name || '?').trim()[0] || '?')}</span>`}
+            <span><b>${esc(t.name)}</b><small>${esc(t.event)}</small></span>
+          </figcaption>
+        </figure>`).join('')}</div>
+    </div>` : ''}
 
-  ${testi.length ? `<section class="cv-testi" id="testimoni">
-    <div class="cv-head">
-      <div class="cv-eyebrow center"><i></i>${esc(c.testimonials.eyebrow)}<i></i></div>
-      <h2>${esc(c.testimonials.title)}</h2>
-    </div>
-    <div class="cv-testi-grid">${testi.map(t => `
-      <figure>
-        <span class="cv-quote" aria-hidden="true">“</span>
-        ${stars(t.rating)}
-        <blockquote>${esc(t.text)}</blockquote>
-        <figcaption>
-          ${safeUrl(t.photo) ? `<img src="${esc(safeUrl(t.photo))}" alt="" loading="lazy" decoding="async">` : `<span class="cv-av">${esc((t.name || '?').trim()[0] || '?')}</span>`}
-          <span><b>${esc(t.name)}</b><small>${esc(t.event)}</small></span>
-        </figcaption>
-      </figure>`).join('')}</div>
-    <div class="cv-again"><button class="cv-btn" data-start>${esc(h.cta)} ${ARROW}</button></div>
-  </section>` : ''}
-
-  <footer class="cv-foot">
-    <span>© ${new Date().getFullYear()} ${esc(b.name)} ${esc(b.tagline)}</span>
-    <span class="cv-social">
-      ${ig ? `<a href="https://instagram.com/${encodeURIComponent(ig)}" target="_blank" rel="noopener">${IG}@${esc(ig)}</a>` : ''}
-      ${wa ? `<a href="${wa}" target="_blank" rel="noopener">${WA}WhatsApp</a>` : ''}
-    </span>
-  </footer>`;
+    <footer class="cv-foot">
+      <span>© ${new Date().getFullYear()} ${esc(b.name)} ${esc(b.tagline)}</span>
+      <span class="cv-social">
+        ${ig ? `<a href="https://instagram.com/${encodeURIComponent(ig)}" target="_blank" rel="noopener">${IG}@${esc(ig)}</a>` : ''}
+        ${wa ? `<a href="${wa}" target="_blank" rel="noopener">${WA}WhatsApp</a>` : ''}
+      </span>
+    </footer>
+  </section>`;
 }
