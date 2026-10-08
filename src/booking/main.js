@@ -223,9 +223,17 @@ $$('.stepper[data-role="people"] button').forEach(b => b.onclick = () => {
 /* =========================================================
    7. RENDER — STEP 3 (identity fields)
    ========================================================= */
+// satu listener untuk semua kolom form: hapus tanda error & perbarui tombol
+$('#form').addEventListener('input', e => { e.target.closest?.('.f')?.classList.remove('bad'); syncNav(); });
+/* isian identitas disimpan supaya tidak hilang saat client bolak-balik langkah */
+const IDENT = {};
 function renderIdentity(){
   const s = svc(); if(!s) return;
-  $('#identity').innerHTML = s.couple ? `
+  const box = $('#identity'), mode = s.couple ? 'couple' : 'client';
+  if(box.dataset.mode === mode) return;           // sudah tampil — biarkan isian apa adanya
+  $$('#identity input').forEach(i => { IDENT[i.id] = i.value; });
+  box.dataset.mode = mode;
+  box.innerHTML = s.couple ? `
     <fieldset class="fs">
       <legend>Couple Information</legend>
       <div class="fgrid two">
@@ -248,9 +256,10 @@ function renderIdentity(){
           <input id="clientIg" type="text" placeholder="@username"></div>
       </div>
     </fieldset>`;
-  $$('#form input').forEach(i => i.addEventListener('input', () => {
-    i.closest('.f')?.classList.remove('bad'); syncNav();
-  }));
+  $$('#identity input').forEach(i => {
+    if(IDENT[i.id]) i.value = IDENT[i.id];
+    i.addEventListener('input', () => { IDENT[i.id] = i.value; });
+  });
 }
 
 /* =========================================================
@@ -779,6 +788,9 @@ async function submit(){
 $('#homeBtn').onclick = () => {
   Object.assign(state, {step:0, service:null, group:null, pkg:null, addons:{}, people:1, agreed:false, booking:null, map:{link:null,lat:null,lng:null}});
   $('#form').reset();
+  Object.keys(IDENT).forEach(k => delete IDENT[k]);
+  delete $('#identity').dataset.mode;
+  $('#identity').innerHTML = '';
   TP.time?.clear(); TP.endtime?.clear();
   $('#agreeBtn').classList.remove('sel');
   $$('.f').forEach(f => f.classList.remove('bad'));
