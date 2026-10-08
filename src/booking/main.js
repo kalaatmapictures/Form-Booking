@@ -4,7 +4,8 @@
    dari loadCatalog() — lihat data.js & catalog.js.
    ========================================================= */
 import { SUPABASE, GOOGLE_MAPS_API_KEY, supabaseReady, DEMO_MODE } from './config.js';
-import { loadCatalog } from './data.js';
+import { loadCatalog, loadContent } from './data.js';
+import { renderLanding } from './landing.js';
 
 let DATA = {}, TERMS = {}, SETTINGS = {};
 
@@ -581,7 +582,7 @@ function syncNav(){
 }
 function goto(step){
   state.step = step;
-  $('#hero').style.display = step === 0 ? '' : 'none';
+  $('#landing').style.display = step === 0 ? '' : 'none';
   $('#progress').hidden = step === 0;
   $('#nav').hidden = step === 0 || step > 4;   // step 5 tidak butuh tombol Lanjut
   $$('.screen').forEach(s => s.classList.remove('active'));
@@ -598,14 +599,21 @@ function goto(step){
   window.scrollTo({top:0, behavior: step===0 ? 'auto' : 'smooth'});
 }
 
-// menu dimuat asinkron (Supabase); tunggu sampai siap sebelum masuk ke step 1
-$('#startBtn').onclick = async () => {
-  const btn = $('#startBtn');
+// menu dimuat asinkron (Supabase); tunggu sampai siap sebelum masuk ke step 1.
+// [data-start] = mulai dari pilih layanan; [data-start-svc] = langsung ke paket layanan itu.
+document.addEventListener('click', async e => {
+  const btn = e.target.closest?.('[data-start], [data-start-svc]');
+  if(!btn || !btn.closest('#landing')) return;
+  e.preventDefault();
   btn.disabled = true;
   await catalogReady;
   btn.disabled = false;
-  renderServices(); goto(1);
-};
+  const id = btn.dataset.startSvc;
+  if(id && DATA[id]){
+    if(state.service !== id){ state.service = id; state.group = DATA[id].groups[0].id; state.pkg = null; state.addons = {}; }
+    renderServices(); goto(2);
+  } else { renderServices(); goto(1); }
+});
 $('#backBtn').onclick  = () => goto(Math.max(0, state.step - 1));
 $('#nextBtn').onclick  = () => {
   if(state.step === 3 && !validate(true)){
@@ -832,7 +840,9 @@ function applySettings(){
 }
 
 async function init(){
-  const catalog = await loadCatalog();
+  const [catalog, content] = await Promise.all([loadCatalog(), loadContent()]);
+  renderLanding($('#landing'), content, catalog.services);
+  document.title = `${content.brand.name} — Book Your Moment`;
   DATA = catalog.services;
   TERMS = catalog.terms;
   SETTINGS = catalog.settings;
