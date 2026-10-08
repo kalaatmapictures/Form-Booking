@@ -582,6 +582,7 @@ function syncNav(){
 }
 function goto(step){
   state.step = step;
+  document.body.dataset.step = step;
   $('#landing').style.display = step === 0 ? '' : 'none';
   $('#progress').hidden = step === 0;
   $('#nav').hidden = step === 0 || step > 4;   // step 5 tidak butuh tombol Lanjut
