@@ -10,7 +10,6 @@ const cssUrl = u => `url("${encodeURI(u).replace(/"/g, '%22')}")`;
 
 const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const STAR = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>';
-const SPRIG = '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"><path d="M6 27C12 21 18 13 26 5M11 21c-3-1-5-4-5-7 3 1 5 4 5 7zM15 16c-3-1-4-4-4-7 3 1 4 4 4 7zM19 12c-2-1-3-3-3-6 2 1 3 3 3 6zM14 22c1 3 4 4 7 4-1-3-4-4-7-4zM18 17c1 3 4 4 7 4-1-3-4-4-7-4z"/></svg>';
 const IG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6" fill="currentColor"/></svg>';
 const WA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 20l1.2-4A8 8 0 1 1 8 18.8z"/><path d="M9 9.5c.3 2.3 2.2 4.2 4.5 4.5l1-1.2 2 .8-.4 1.8c-3.8.3-7.3-3.2-7-7l1.8-.4.8 2z" stroke-width="1.2"/></svg>';
 
@@ -29,10 +28,7 @@ export function renderLanding(el, content, _services){
   <section class="cv ${photo || photoM ? 'has-photo' : ''}" ${bg ? `style='${esc(bg)}'` : ''}>
     <div class="cv-photo" aria-hidden="true"></div>
     <header class="cv-nav">
-      <div class="cv-brand">
-        <span class="cv-sprig">${SPRIG}</span>
-        <span><b>${esc(b.name)}</b><small>${esc(b.tagline)}</small></span>
-      </div>
+      <div class="cv-brand"><img class="cv-logo" src="/logo.png" alt="${esc(`${b.name} ${b.tagline}`)}" width="785" height="207"></div>
       <button class="cv-btn line sm" data-start>${esc(h.cta)}</button>
     </header>
 
