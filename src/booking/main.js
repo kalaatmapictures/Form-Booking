@@ -7,7 +7,7 @@ import { SUPABASE, GOOGLE_MAPS_API_KEY, supabaseReady, DEMO_MODE } from './confi
 import { loadCatalog, loadContent } from './data.js';
 import { renderLanding } from './landing.js';
 
-let DATA = {}, TERMS = {}, SETTINGS = {};
+let DATA = {}, TERMS = {}, SETTINGS = {}, SVC_PHOTOS = {};
 
 /* =========================================================
    3. STATE
@@ -50,13 +50,23 @@ function remainingPrice(){ return totalPrice() - dpPrice(); }
 /* =========================================================
    5. RENDER — STEP 1
    ========================================================= */
+/* foto kartu layanan — diatur di web admin (Menu → Konten → Foto layanan) */
+function svcPhoto(id, s){
+  const u = String(SVC_PHOTOS[id] || '').trim();
+  return /^https?:\/\//i.test(u)
+    ? `<span class="svc-img"><img src="${esc(u)}" alt="${esc(s.title)}" loading="lazy" decoding="async"></span>`
+    : `<span class="svc-img empty" aria-hidden="true"><span>${esc((s.label || '?').trim()[0] || '?')}</span></span>`;
+}
 function renderServices(){
   $('#svcGrid').innerHTML = Object.entries(DATA).map(([id,s]) => `
     <button type="button" class="card svc ${state.service===id?'sel':''}" data-svc="${id}">
       <span class="tick">✓</span>
-      <span class="eyebrow">${esc(s.label)}</span>
-      <span class="name">${esc(s.title)}</span>
-      <span class="d">${esc(s.desc)}</span>
+      ${svcPhoto(id, s)}
+      <span class="svc-txt">
+        <span class="eyebrow">${esc(s.label)}</span>
+        <span class="name">${esc(s.title)}</span>
+        <span class="d">${esc(s.desc)}</span>
+      </span>
     </button>`).join('');
   $$('[data-svc]').forEach(b => b.onclick = () => {
     const id = b.dataset.svc;
@@ -843,6 +853,7 @@ function applySettings(){
 async function init(){
   const [catalog, content] = await Promise.all([loadCatalog(), loadContent()]);
   renderLanding($('#landing'), content, catalog.services);
+  SVC_PHOTOS = content.services?.photos || {};
   document.title = `${content.brand.name} — Book Your Moment`;
   DATA = catalog.services;
   TERMS = catalog.terms;
