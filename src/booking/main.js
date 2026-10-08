@@ -612,8 +612,12 @@ function canProceed(){
 }
 function syncNav(){
   const n = $('#nextBtn');
-  n.disabled = !canProceed();
-  n.textContent = state.step === 4 ? 'Kirim & lanjut ke WhatsApp' : 'Lanjut';
+  // langkah 4: tombol tetap bisa ditekan; bila belum centang persetujuan, arahkan ke kotak centang
+  const waitAgree = state.step === 4 && !state.agreed && !state.submitting;
+  n.disabled = waitAgree ? false : !canProceed();
+  n.classList.toggle('wait', waitAgree);
+  if(state.step === 4) n.innerHTML = '<span class="lbl-lg">Kirim &amp; lanjut ke WhatsApp</span><span class="lbl-sm">Kirim ke WhatsApp</span>';
+  else n.textContent = 'Lanjut';
   const showEst = state.step >= 2 && state.step <= 4 && state.pkg;
   $('#estBox').hidden = !showEst;
   if(showEst) $('#estOut').textContent = rp(totalPrice());
@@ -667,7 +671,16 @@ $('#nextBtn').onclick  = () => {
     if(first && first.scrollIntoView) first.scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
-  if(state.step === 4){ submit(); return; }
+  if(state.step === 4){
+    if(!state.agreed){
+      const a = $('#agreeBtn');
+      a.scrollIntoView({behavior:'smooth', block:'center'});
+      a.classList.remove('nudge'); void a.offsetWidth; a.classList.add('nudge');
+      return;
+    }
+    if(!state.submitting) submit();
+    return;
+  }
   goto(state.step + 1);
 };
 
@@ -805,7 +818,7 @@ async function submit(){
   const waUrl = `https://wa.me/${SETTINGS.whatsapp.paymentConfirm}?text=${msg}`;
   $('#waBtn').href = waUrl;
 
-  btn.innerHTML = 'Kirim & lanjut ke WhatsApp';
+  btn.innerHTML = '<span class="lbl-lg">Kirim &amp; lanjut ke WhatsApp</span><span class="lbl-sm">Kirim ke WhatsApp</span>';
   state.submitting = false;
   goto(5);
   setTimeout(() => { window.location.href = waUrl; }, 900);

@@ -614,13 +614,18 @@ main{max-width:1000px;padding-top:44px}
 #svcGrid .svc .tick{z-index:2;top:14px;right:14px;background:rgba(22,21,18,.55);backdrop-filter:blur(6px);border:1px solid rgba(242,236,226,.25)}
 #svcGrid .svc.sel .tick{background:var(--primary);border-color:var(--primary)}
 @media(max-width:719px){
-  main{padding:26px 16px 160px}
+  main{padding:26px 16px calc(130px + env(safe-area-inset-bottom))}
   #progress .inner{padding:12px 14px;gap:8px}
   .pmark{font-size:17px}
   .pmark img{height:14px}
-  .nav .inner{border-radius:20px;flex-wrap:wrap;padding:10px}
-  .nav .est{flex:1 1 100%;order:-1;padding:0 6px}
-  .nav .btn{flex:1}
+  /* bar bawah HP: satu baris ringkas — [‹] estimasi [Lanjut] */
+  .nav .inner{border-radius:20px;flex-wrap:nowrap;padding:8px;gap:10px}
+  .nav #backBtn{flex:0 0 46px;width:46px;height:46px;padding:0;display:grid;place-items:center;border-radius:50%}
+  .nav #backBtn .bk-t{display:none}
+  .nav .est{flex:1 1 auto;order:0;padding:0 2px;min-width:0}
+  .nav .est .v{font-size:20px;white-space:nowrap}
+  .nav #nextBtn{flex:0 0 auto;padding:14px 20px;white-space:nowrap}
+  .nav #nextBtn .lbl-lg{display:none}
 }
 .pay-hero h2{font-size:clamp(32px,5vw,46px);font-weight:700;line-height:1.1;margin:6px 0 0}
 /* isi otomatis browser (autofill) tetap mengikuti warna tema, tidak biru */
@@ -637,3 +642,15 @@ main{max-width:1000px;padding-top:44px}
 .fgrid.dt-row{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:10px}
 .dt-row .f input[type=date],.dt-row .ttrig{width:100%;min-width:0}
 @media(max-width:420px){ .dt-row .f input[type=date],.dt-row .ttrig{padding-left:12px;padding-right:10px;font-size:14px} }
+
+/* tombol kembali & label tombol kirim */
+#backBtn .bk-ic{display:none;width:20px;height:20px}
+@media(max-width:719px){ #backBtn .bk-ic{display:block} }
+#nextBtn .lbl-sm{display:none}
+@media(max-width:719px){ #nextBtn .lbl-sm{display:inline} }
+/* langkah 4 sebelum centang persetujuan: tombol tampak redup, ditekan → arahkan ke kotak centang */
+#nextBtn.wait{background:#3A352D;color:#B8AE9E}
+.agree.nudge{animation:nudge .9s var(--ease) 1;border-color:var(--gold);box-shadow:0 0 0 3px rgba(194,166,115,.25)}
+@keyframes nudge{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.agree .box{border:1.5px solid rgba(216,196,160,.6);background:transparent}
+.agree.sel .box{border-color:var(--primary)}
