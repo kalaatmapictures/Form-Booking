@@ -515,6 +515,8 @@ $('#time').addEventListener('input', syncEndHint);
 
 const waRe = /^(?:\+62|62|0)8[1-9][0-9]{6,11}$/;
 const usesPeople = () => !!svc()?.usesPeople;
+/* kolom tambahan (jumlah outfit, konsep, properti) hanya untuk layanan Prewedding */
+const isPrewed = () => state.service === 'prewedding';
 function readForm(){
   const v = id => ($('#'+id)?.value || '').trim();
   const ig = id => { const x = v(id).replace(/^@+/,''); return x ? '@'+x : null; };
@@ -523,7 +525,9 @@ function readForm(){
     client:v('client'), clientIg:ig('clientIg'),
     wa:v('wa').replace(/[\s\-().]/g,''), date:v('date'),
     time:v('time'), endtime:endTime(v('time')),
-    loc:v('loc'), notes:v('notes')
+    loc:v('loc'), notes:v('notes'),
+    outfits:v('outfits'), concept:v('concept'),
+    props:v('props').split('\n').map(x => x.trim()).filter(Boolean).join('\n')
   };
 }
 function validate(mark){
@@ -572,6 +576,11 @@ function summaryRows(){
     : (state.map.link ? 'Link Maps terlampir' : '');
   out += row('Location', f.loc, mapNote);
   if(usesPeople()) out += row('People', state.people + ' orang');
+  if(isPrewed()){
+    if(f.outfits) out += row('Outfit', f.outfits === '6' ? '6 outfit atau lebih' : f.outfits + ' outfit');
+    if(f.concept) out += row('Konsep', f.concept);
+    if(f.props) out += row('Properti', f.props.split('\n').join(', '));
+  }
   out += row('WhatsApp', f.wa);
   if(f.notes) out += row('Request', f.notes);
   return out;
@@ -640,6 +649,7 @@ function goto(step){
   if(step === 3){
     renderIdentity();
     $('#peopleFs').hidden = !usesPeople();
+    $('#prewedFs').hidden = !isPrewed();
     initMapControls();
     syncEndHint();
     syncPeople();
@@ -730,6 +740,9 @@ function buildPayload(){
     longitude: state.map.lng,
     whatsapp: f.wa,
     notes: f.notes || null,
+    outfit_count: isPrewed() && f.outfits ? Number(f.outfits) : null,
+    concept: isPrewed() ? f.concept || null : null,
+    props: isPrewed() ? f.props || null : null,
     estimated_total: totalPrice(),
     estimated_dp: dpPrice(),
     estimated_remaining: remainingPrice(),
@@ -811,6 +824,9 @@ async function submit(){
     `Jam: ${fmtTime12(payload.session_time)}${payload.session_end_time ? ' – ' + fmtTime12(payload.session_end_time) : ''} WIB\n` +
     `Lokasi: ${payload.location}\n` +
     (payload.map_link ? `Titik lokasi: ${payload.map_link}\n` : '') +
+    (payload.outfit_count ? `Jumlah outfit: ${payload.outfit_count === 6 ? '6 atau lebih' : payload.outfit_count}\n` : '') +
+    (payload.concept ? `Konsep: ${payload.concept}\n` : '') +
+    (payload.props ? `Properti: ${payload.props.split('\n').join(', ')}\n` : '') +
     `\nEstimasi total: ${rp(payload.estimated_total)}\n` +
     `DP ${SETTINGS.dpPercent}%: ${rp(payload.estimated_dp)}\n\n` +
     `Mohon info untuk konfirmasi jadwal dan pembayarannya. Terima kasih!`
