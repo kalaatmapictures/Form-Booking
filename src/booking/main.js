@@ -326,7 +326,7 @@ function initMapControls(){
     // koordinat mentah dinormalkan jadi URL supaya tim bisa langsung klik
     const link = c && !/^https?:/i.test(v) ? `https://www.google.com/maps?q=${c.lat},${c.lng}` : (v || null);
     state.map = {link, lat: c?.lat ?? null, lng: c?.lng ?? null};
-    renderMap();
+    renderMap(); saveProgress();
   });
 
   $('#geoBtn').onclick = () => {
@@ -338,7 +338,7 @@ function initMapControls(){
         const lat = +pos.coords.latitude.toFixed(6), lng = +pos.coords.longitude.toFixed(6);
         state.map = {link:`https://www.google.com/maps?q=${lat},${lng}`, lat, lng};
         linkEl.value = state.map.link;
-        renderMap();
+        renderMap(); saveProgress();
         btn.disabled = false; btn.textContent = 'Perbarui lokasi saat ini';
       },
       () => { btn.disabled = false; btn.textContent = 'Izin lokasi ditolak — tempel link saja'; },
@@ -638,9 +638,24 @@ function syncNav(){
     const i = Number(el.dataset.s);
     el.classList.toggle('on', i === state.step);
     el.classList.toggle('done', i < state.step);
+    el.disabled = i === state.step || !canReach(i);
+    if(i === state.step) el.setAttribute('aria-current', 'step'); else el.removeAttribute('aria-current');
   });
   if(state.step === 2) syncPeople();
+  saveProgress();
 }
+/* langkah yang boleh dibuka lewat angka di progress bar: semua langkah sebelumnya harus sudah lengkap */
+function canReach(i){
+  if(state.step < 1 || state.step > 4 || state.submitting) return false;
+  if(i >= 2 && !state.service) return false;
+  if(i >= 3 && !pkg()) return false;
+  if(i >= 4 && !(validate(false) && state.referral)) return false;
+  return i >= 1 && i <= 4;
+}
+$$('#steps .stp').forEach(el => el.onclick = () => {
+  const i = Number(el.dataset.s);
+  if(i !== state.step && canReach(i)) goto(i);
+});
 function goto(step){
   state.step = step;
   document.body.dataset.step = step;
@@ -861,6 +876,7 @@ async function submit(){
   );
   const waUrl = `https://wa.me/${SETTINGS.whatsapp.paymentConfirm}?text=${msg}`;
   $('#waBtn').href = waUrl;
+  state.done = {bid: payload.booking_id, waUrl, demo: !!result.demo};
 
   btn.innerHTML = '<span class="lbl-lg">Kirim &amp; lanjut ke WhatsApp</span><span class="lbl-sm">Kirim ke WhatsApp</span>';
   state.submitting = false;
@@ -869,7 +885,7 @@ async function submit(){
 }
 
 $('#homeBtn').onclick = () => {
-  Object.assign(state, {step:0, service:null, group:null, pkg:null, addons:{}, people:1, agreed:false, booking:null, referral:null, map:{link:null,lat:null,lng:null}});
+  Object.assign(state, {step:0, service:null, group:null, pkg:null, addons:{}, people:1, agreed:false, booking:null, referral:null, done:null, map:{link:null,lat:null,lng:null}});
   $('#form').reset();
   Object.keys(IDENT).forEach(k => delete IDENT[k]);
   delete $('#identity').dataset.mode;
@@ -879,6 +895,70 @@ $('#homeBtn').onclick = () => {
   $$('.f').forEach(f => f.classList.remove('bad'));
   goto(0);
 };
+
+/* =========================================================
+   11b. SIMPAN PROGRES — reload tidak mengembalikan client ke awal
+   Disimpan di sessionStorage (hilang saat tab ditutup).
+   ========================================================= */
+const SAVE_KEY = 'kla-booking-v1';
+const FORM_FIELDS = ['wa','date','time','loc','mapLink','outfits','concept','campus','props','notes'];
+let restoring = false;
+function saveProgress(){
+  if(restoring || !Object.keys(DATA).length) return;
+  try{
+    if(state.step === 0){ sessionStorage.removeItem(SAVE_KEY); return; }
+    $$('#identity input').forEach(i => { IDENT[i.id] = i.value; });
+    const fields = {};
+    FORM_FIELDS.forEach(id => { const el = $('#' + id); if(el && el.value) fields[id] = el.value; });
+    const {step, service, group, pkg, addons, people, agreed, referral, map, done} = state;
+    sessionStorage.setItem(SAVE_KEY, JSON.stringify({step, service, group, pkg, addons, people, agreed, referral, map, done, fields, ident:{...IDENT}}));
+  }catch(e){}
+}
+function restoreProgress(){
+  let d = null;
+  try{ d = JSON.parse(sessionStorage.getItem(SAVE_KEY) || 'null'); }catch(e){}
+  if(!d || !(d.step >= 1)) return false;
+  if(d.step === 5){
+    if(!d.done?.bid) return false;
+    state.done = d.done;
+    $('#bidOut').textContent = d.done.bid;
+    $('#waBtn').href = d.done.waUrl;
+    $('#savedNote').innerHTML = d.done.demo ? '<b class="warn">Mode demo</b> — Supabase belum dikonfigurasi, booking ini tidak disimpan.' : '';
+    goto(5);
+    return true;
+  }
+  const s = DATA[d.service];
+  if(!s) return false;
+  restoring = true;
+  const g = s.groups.find(x => x.id === d.group) || s.groups[0];
+  Object.assign(state, {
+    service: d.service, group: g.id,
+    pkg: g.packages.some(p => p.id === d.pkg) ? d.pkg : null,
+    addons: d.addons && typeof d.addons === 'object' ? d.addons : {},
+    people: Math.max(1, Number(d.people) || 1),
+    agreed: !!d.agreed, referral: d.referral || null,
+    map: d.map && typeof d.map === 'object' ? d.map : {link:null, lat:null, lng:null}
+  });
+  Object.assign(IDENT, d.ident || {});
+  Object.entries(d.fields || {}).forEach(([id, v]) => {
+    if(!FORM_FIELDS.includes(id)) return;
+    if(id === 'time') return TP.time?.set(v);
+    const el = $('#' + id); if(el) el.value = v;
+  });
+  $('#agreeBtn').classList.toggle('sel', state.agreed);
+  $('#agreeBtn').setAttribute('aria-pressed', state.agreed);
+  renderServices();
+  // jangan melompati langkah yang datanya sudah tidak lengkap (mis. paket dihapus admin)
+  let step = Math.min(4, Number(d.step) || 1);
+  if(step >= 2 && !state.service) step = 1;
+  if(step >= 3 && !pkg()) step = 2;
+  if(step === 4){ state.step = 3; renderIdentity(); if(!(validate(false) && state.referral)) step = 3; }
+  goto(step);
+  restoring = false;
+  saveProgress();
+  return true;
+}
+window.addEventListener('pagehide', saveProgress);
 
 /* =========================================================
    12. INIT
@@ -899,6 +979,6 @@ async function init(){
 
   const localToday = new Date();
   $('#date').min = `${localToday.getFullYear()}-${String(localToday.getMonth()+1).padStart(2,'0')}-${String(localToday.getDate()).padStart(2,'0')}`;
-  goto(0);
+  if(!restoreProgress()) goto(0);
 }
 const catalogReady = init();

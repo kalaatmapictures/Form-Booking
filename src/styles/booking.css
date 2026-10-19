@@ -63,6 +63,12 @@ input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 .stp.on .n{background:var(--primary);color:#fff;box-shadow:0 6px 14px -6px var(--primary)}
 .stp.done .n{background:var(--tint-2);color:var(--primary)}
 .stp .lbl{display:none}
+/* angka langkah bisa diklik untuk kembali / cek ulang data */
+button.stp{appearance:none;background:none;border:0;padding:0;font-family:inherit;cursor:pointer;border-radius:99px}
+button.stp:disabled{cursor:default}
+button.stp:not(:disabled):not(.on):hover .n{box-shadow:0 0 0 2px var(--primary)}
+button.stp:not(:disabled):not(.on):hover{color:var(--ink)}
+button.stp:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
 .stp .dash{width:10px;height:2px;border-radius:9px;background:var(--tint-2)}
 @media(min-width:720px){ .stp .lbl{display:inline} .stp .dash{width:18px} }
 
@@ -513,6 +519,7 @@ body[data-step="0"] main{display:none}
 .pmark{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.01em;color:var(--ink)}
 .pmark img{display:block;height:16px;width:auto}
 .stp{color:var(--muted)}
+button.stp{color:var(--muted)}
 .stp .n{border-radius:50%;background:var(--tint);color:var(--muted)}
 .stp.on{color:var(--ink)}
 .stp.on .n{background:var(--primary);color:var(--on-primary);box-shadow:none}
