@@ -654,3 +654,10 @@ main{max-width:1000px;padding-top:44px}
 @keyframes nudge{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 .agree .box{border:1.5px solid rgba(216,196,160,.6);background:transparent}
 .agree.sel .box{border-color:var(--primary)}
+
+/* Popup "Tahu Kalaatma dari mana?" */
+.ref-sheet{max-width:440px}
+.ref-sheet .ref-sub{font-size:13px;color:var(--ink-2);font-weight:300;margin:6px 0 0;line-height:1.6}
+.ref-sheet .btn.big{width:100%}
+.ref-sheet .btn:disabled{opacity:.45;cursor:not-allowed}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
