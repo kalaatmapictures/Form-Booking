@@ -86,6 +86,16 @@
     <form id="form" novalidate>
       <div id="identity"></div>
 
+      <fieldset class="fs" id="gradFs" hidden>
+        <legend>Detail Graduation</legend>
+        <div class="f" id="f-campus">
+          <label for="campus">Kampus / Universitas <span class="req">*</span></label>
+          <input id="campus" name="campus" type="text" maxlength="150" placeholder="mis. Universitas Padjadjaran (UNPAD)">
+          <div class="help">Nama kampus tempat wisuda — membantu crew menyiapkan lokasi & jadwal.</div>
+          <div class="err">Nama kampus wajib diisi.</div>
+        </div>
+      </fieldset>
+
       <fieldset class="fs">
         <legend>Kontak</legend>
         <div class="f" id="f-wa">

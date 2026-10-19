@@ -517,6 +517,8 @@ const waRe = /^(?:\+62|62|0)8[1-9][0-9]{6,11}$/;
 const usesPeople = () => !!svc()?.usesPeople;
 /* kolom tambahan (jumlah outfit, konsep, properti) hanya untuk layanan Prewedding */
 const isPrewed = () => state.service === 'prewedding';
+/* kolom kampus hanya untuk layanan Graduation (wajib diisi) */
+const isGrad = () => state.service === 'graduation';
 function readForm(){
   const v = id => ($('#'+id)?.value || '').trim();
   const ig = id => { const x = v(id).replace(/^@+/,''); return x ? '@'+x : null; };
@@ -526,7 +528,7 @@ function readForm(){
     wa:v('wa').replace(/[\s\-().]/g,''), date:v('date'),
     time:v('time'), endtime:endTime(v('time')),
     loc:v('loc'), notes:v('notes'),
-    outfits:v('outfits'), concept:v('concept'),
+    outfits:v('outfits'), concept:v('concept'), campus:v('campus'),
     props:v('props').split('\n').map(x => x.trim()).filter(Boolean).join('\n')
   };
 }
@@ -535,6 +537,7 @@ function validate(mark){
   const need = (id, ok) => { if(!ok) bad.push(id); if(mark) $('#f-'+id)?.classList.toggle('bad', !ok); };
   if(svc().couple){ need('bride', !!f.bride); need('groom', !!f.groom); }
   else need('client', !!f.client);
+  if(isGrad()) need('campus', !!f.campus);
   need('wa', waRe.test(f.wa));
   need('date', !!f.date);
   need('time', !!f.time);
@@ -564,6 +567,7 @@ function summaryRows(){
   } else {
     out += row('Client / PIC', f.client, f.clientIg);
   }
+  if(isGrad()) out += row('Kampus', f.campus);
   out += row('Service', s.label);
   const pname = (s.groups.length>1 ? g.label + ' — ' : '') + (p ? p.name : '');
   out += row('Package', pname);
@@ -650,6 +654,7 @@ function goto(step){
     renderIdentity();
     $('#peopleFs').hidden = !usesPeople();
     $('#prewedFs').hidden = !isPrewed();
+    $('#gradFs').hidden = !isGrad();
     initMapControls();
     syncEndHint();
     syncPeople();
@@ -743,6 +748,7 @@ function buildPayload(){
     outfit_count: isPrewed() && f.outfits ? Number(f.outfits) : null,
     concept: isPrewed() ? f.concept || null : null,
     props: isPrewed() ? f.props || null : null,
+    campus: isGrad() ? f.campus || null : null,
     estimated_total: totalPrice(),
     estimated_dp: dpPrice(),
     estimated_remaining: remainingPrice(),
@@ -818,6 +824,7 @@ async function submit(){
     `Halo Kalaatma Pictures, saya baru saja mengisi form booking.\n\n` +
     `Booking ID: ${payload.booking_id}\n` +
     `Nama: ${payload.bride_name ? payload.bride_name + ' & ' + payload.groom_name : payload.client_name}\n` +
+    (payload.campus ? `Kampus: ${payload.campus}\n` : '') +
     `Service: ${payload.service}${payload.sub_category ? ' — ' + payload.sub_category : ''}\n` +
     `Package: ${payload.package_name}\n` +
     `Tanggal: ${fmtDate(payload.session_date)}\n` +
