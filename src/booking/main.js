@@ -686,6 +686,8 @@ $('#nextBtn').onclick  = () => {
     if(first && first.scrollIntoView) first.scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
+  // sebelum ringkasan: tanya sekali "Tahu Kalaatma dari mana?"
+  if(state.step === 3 && !state.referral){ openReferral(); return; }
   if(state.step === 4){
     if(!state.agreed){
       const a = $('#agreeBtn');
@@ -699,6 +701,24 @@ $('#nextBtn').onclick  = () => {
   goto(state.step + 1);
 };
 
+/* "Tahu Kalaatma dari mana?" — dropdown, wajib dipilih sebelum lanjut ke step 04 */
+function openReferral(){
+  $('#refSel').value = state.referral || '';
+  $('#refOk').disabled = !$('#refSel').value;
+  $('#refModal').classList.add('open');
+  setTimeout(() => $('#refSel').focus(), 50);
+}
+const closeReferral = () => $('#refModal').classList.remove('open');
+$('#refSel').addEventListener('change', e => { $('#refOk').disabled = !e.target.value; });
+$('#refOk').onclick = () => {
+  const v = $('#refSel').value;
+  if(!v) return;
+  state.referral = v;
+  closeReferral();
+  goto(4);
+};
+$$('#refModal [data-ref-close]').forEach(b => b.onclick = closeReferral);
+
 /* terms */
 $('#termsOpen').onclick = () => {
   const t = TERMS[svc().terms] || {label:'', title:'Syarat & Ketentuan', list:[]};
@@ -707,7 +727,7 @@ $('#termsOpen').onclick = () => {
   $('#modal').classList.add('open');
 };
 $$('#modal [data-close]').forEach(b => b.onclick = () => $('#modal').classList.remove('open'));
-document.addEventListener('keydown', e => { if(e.key === 'Escape'){ $('#modal').classList.remove('open'); closeClock(); } });
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ $('#modal').classList.remove('open'); closeReferral(); closeClock(); } });
 $('#agreeBtn').onclick = () => {
   state.agreed = !state.agreed;
   $('#agreeBtn').classList.toggle('sel', state.agreed);
@@ -749,6 +769,7 @@ function buildPayload(){
     concept: isPrewed() ? f.concept || null : null,
     props: isPrewed() ? f.props || null : null,
     campus: isGrad() ? f.campus || null : null,
+    referral_source: state.referral || null,
     estimated_total: totalPrice(),
     estimated_dp: dpPrice(),
     estimated_remaining: remainingPrice(),
@@ -848,7 +869,7 @@ async function submit(){
 }
 
 $('#homeBtn').onclick = () => {
-  Object.assign(state, {step:0, service:null, group:null, pkg:null, addons:{}, people:1, agreed:false, booking:null, map:{link:null,lat:null,lng:null}});
+  Object.assign(state, {step:0, service:null, group:null, pkg:null, addons:{}, people:1, agreed:false, booking:null, referral:null, map:{link:null,lat:null,lng:null}});
   $('#form').reset();
   Object.keys(IDENT).forEach(k => delete IDENT[k]);
   delete $('#identity').dataset.mode;
